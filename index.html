@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tính khung phẳng BTCT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: kỹ thuật, chính xác, bình tĩnh — như bản tính kết cấu được trình bày cẩn thận.
+   IDEA: một tờ bản vẽ kết cấu: sơ đồ khung lớn, biểu đồ nội lực vẽ phía thớ căng.
+   PICTURE: sơ đồ khung tương tác với biểu đồ M, Q, N, biến dạng; rê chuột đọc nội lực.
+   COLOUR and TYPE: nền trắng, mực #10131a, carmine cho M, prussian cho Q/N; Literata + Inter.
+   LAYOUT: cột nhập liệu bên trái, hình lớn bên phải, báo cáo toàn chiều rộng bên dưới. */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0f1217);--ink:light-dark(#10131a,#e6e8ee);--mute:light-dark(#5b6170,#9aa1b0);--line:light-dark(#dfe2e8,#2a2f3a);--panel:light-dark(#f6f7f9,#161a21);--red:light-dark(#c1121f,#ff5a5f);--blue:light-dark(#0b4f8a,#6fb3ff);--ok:light-dark(#1d6b3a,#62c98a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Literata,Georgia,serif;font-weight:600;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:clamp(30px,4vw,44px)}h2{font-size:26px;margin:36px 0 12px}h3{font-size:18px;margin:22px 0 8px}
+.band{padding:clamp(22px,3vw,40px) max(4vw,16px)}
+header.band{padding-bottom:12px}header p{color:var(--mute);margin:8px 0 0;max-width:70ch}
+.wrap{max-width:1400px;margin:0 auto}
+.main{display:grid;grid-template-columns:350px minmax(0,1fr);gap:24px;padding-top:8px}
+@media(max-width:900px){.main{grid-template-columns:minmax(0,1fr)}.inputs{order:2}}
+.inputs fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 14px;padding:10px 14px 14px;background:var(--panel)}
+legend{font-family:Literata,serif;font-weight:600;padding:0 6px;font-size:17px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+label{display:block;font-size:13px;color:var(--mute)}
+label.full{grid-column:1/-1}
+input,select{display:block;width:100%;margin-top:3px;font:16px Inter,sans-serif;padding:8px 9px;min-height:40px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+input[type=checkbox]{display:inline;width:auto;min-height:0;margin:0 6px 0 0;vertical-align:-2px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.hint{font-size:13px;color:var(--mute);margin:6px 0 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--mute);font-size:13px}
+th:first-child,td:first-child{text-align:left}
+.ld td{padding:3px 4px}.ld input{min-height:34px;padding:5px 6px;font-size:15px;margin:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center}
+button{font:500 15px Inter,sans-serif;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tabs .sp{flex:1}
+.tabs label{display:flex;align-items:center;font-size:14px;color:var(--ink)}
+.fig{position:relative;height:min(68vh,620px);min-height:360px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+#tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;padding:6px 9px;border-radius:5px;display:none;white-space:nowrap;z-index:2}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.kpi{border-top:2px solid var(--ink);padding-top:6px}
+.kpi b{display:block;font:600 clamp(22px,2.4vw,28px) Literata,serif;white-space:nowrap}
+.kpi span{font-size:13px;color:var(--mute)}
+#err{color:var(--red);font-weight:500;margin:8px 0 0}
+.report{max-width:1100px}
+.report .scroll{margin-bottom:6px}
+.report p{max-width:80ch}
+.tag{font-size:12px;padding:1px 7px;border-radius:10px;border:1px solid currentColor}
+.ok{color:var(--ok)}.bad{color:var(--red)}
+.rfig{border:1px solid var(--line);border-radius:8px;margin:8px 0 16px}
+.rfig svg{display:block;width:100%;height:auto}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+#msg{font-size:14px;color:var(--mute)}
+pre,.scroll{overflow-x:auto}
+@media print{.inputs,.tabs,.toolbar,.figwrap,header p{display:none}.main{display:block}body{font-size:12px}.band{padding:10px}h2{font-size:18px;margin-top:18px;break-after:avoid}table{font-size:11px}.rfig{break-inside:avoid}}
+@media(max-width:600px){table{font-size:13px}}
+</style>
+</head>
+<body>
+<header class="band wrap">
+  <h1>Tính toán khung phẳng bê tông cốt thép</h1>
+  <p>Phân tích tuyến tính đàn hồi theo phương pháp độ cứng trực tiếp (khung nút cứng, 3 bậc tự do/nút). Vật liệu mặc định theo EN 1992-1-1: cột C30/37, dầm C40/50. Kết quả cập nhật ngay khi thay đổi số liệu.</p>
+</header>
+
+<div class="band wrap main" style="padding-top:0">
+  <form class="inputs" id="f" onsubmit="return false">
+    <fieldset><legend>Hình học</legend>
+      <div class="row">
+        <label class="full">Nhịp giữa các cột (m)<input id="spans" value="6 7.2 6"></label>
+        <label class="full">Chiều cao các tầng, từ dưới lên (m)<input id="heights" value="4.5 3.6 3.6 3.6"></label>
+        <label class="full">Liên kết chân cột<select id="base"><option value="fix">Ngàm</option><option value="pin">Khớp</option></select></label>
+      </div>
+      <p class="hint">Cách nhau bằng dấu cách hoặc “;”. Viết “3x3.6” cho 3 giá trị 3,6 lặp lại.</p>
+    </fieldset>
+
+    <fieldset><legend>Cột</legend>
+      <div class="row">
+        <label>Mặt cắt<select id="cshape"><option value="sq">Vuông</option><option value="ci">Tròn</option></select></label>
+        <label><span id="cblab">Cạnh b (mm)</span><input id="cb" type="number" value="400" min="100" step="10"></label>
+        <label>Cấp bê tông<select id="cgrade" class="grade"></select></label>
+        <label>f<sub>ck</sub> (MPa)<input id="cfck" type="number" step="any"></label>
+        <label>E<sub>cm</sub> (GPa)<input id="cE" type="number" step="any"></label>
+        <label>f<sub>ctm</sub> (MPa)<input id="cfctm" type="number" step="any"></label>
+        <label class="full">Trọng lượng riêng (kN/m³)<input id="cgam" type="number" value="25" step="any"></label>
+      </div>
+    </fieldset>
+
+    <fieldset><legend>Dầm (chữ nhật)</legend>
+      <div class="row">
+        <label>Rộng b (mm)<input id="bb" type="number" value="300" min="100" step="10"></label>
+        <label>Cao h (mm)<input id="bh" type="number" value="600" min="150" step="10"></label>
+        <label>Cấp bê tông<select id="bgrade" class="grade"></select></label>
+        <label>f<sub>ck</sub> (MPa)<input id="bfck" type="number" step="any"></label>
+        <label>E<sub>cm</sub> (GPa)<input id="bE" type="number" step="any"></label>
+        <label>f<sub>ctm</sub> (MPa)<input id="bfctm" type="number" step="any"></label>
+        <label class="full">Trọng lượng riêng (kN/m³)<input id="bgam" type="number" value="25" step="any"></label>
+      </div>
+    </fieldset>
+
+    <fieldset><legend>Tải trọng</legend>
+      <div class="scroll"><table class="ld"><thead><tr><th>Tầng</th><th>g (kN/m)</th><th>q (kN/m)</th><th>W (kN)</th></tr></thead><tbody id="ldb"></tbody></table></div>
+      <p class="hint">g, q: tải phân bố đều trên mọi dầm của tầng (chưa kể trọng lượng bản thân). W: lực ngang tại mức sàn, đặt ở nút trái.</p>
+      <div class="row" style="margin-top:10px">
+        <label class="full"><input type="checkbox" id="sw" checked>Kể trọng lượng bản thân dầm, cột</label>
+        <label>γ<sub>G</sub><input id="fG" type="number" value="1.35" step="0.05"></label>
+        <label>γ<sub>Q</sub><input id="fQ" type="number" value="1.5" step="0.05"></label>
+        <label>γ<sub>W</sub><input id="fW" type="number" value="0.9" step="0.05"></label>
+        <label>f<sub>yk</sub> thép (MPa)<input id="fyk" type="number" value="500"></label>
+        <label class="full">Khoảng cách trọng tâm thép a (mm)<input id="cover" type="number" value="50"></label>
+      </div>
+      <p class="hint">Tổ hợp: γ<sub>G</sub>·G + γ<sub>Q</sub>·Q + γ<sub>W</sub>·W. Mặc định γ<sub>W</sub> = 1,5 × ψ<sub>0</sub> (0,6).</p>
+    </fieldset>
+  </form>
+
+  <section class="figwrap">
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-k="geo" aria-selected="false">Sơ đồ</button>
+      <button role="tab" data-k="M" aria-selected="true">Mô men M</button>
+      <button role="tab" data-k="V" aria-selected="false">Lực cắt Q</button>
+      <button role="tab" data-k="N" aria-selected="false">Lực dọc N</button>
+      <button role="tab" data-k="D" aria-selected="false">Biến dạng</button>
+      <span class="sp"></span>
+      <label><input type="checkbox" id="lbl" checked>Hiện giá trị</label>
+    </div>
+    <div class="fig" id="fig"><svg id="sv"></svg><div id="tip"></div></div>
+    <p class="hint" id="cap"></p>
+    <p id="err"></p>
+    <div class="kpis" id="kpis"></div>
+  </section>
+</div>
+
+<section class="band wrap" style="padding-top:0">
+  <div class="toolbar"><button id="print" type="button">In / lưu PDF</button><button id="copy" type="button">Sao chép báo cáo</button><span id="msg"></span></div>
+  <div class="report" id="rep"></div>
+</section>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const GR={20:[2.2,30],25:[2.6,31],30:[2.9,33],35:[3.2,34],40:[3.5,35],45:[3.8,36],50:[4.1,37]};
+const fmt=(v,d=2)=>(Math.abs(v)<Math.pow(10,-d)/2?0:v).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let view='M', R=null, loads=[];
+
+for(const s of document.querySelectorAll('.grade'))s.innerHTML=Object.keys(GR).map(k=>`<option value="${k}">C${k}/${k==20?25:k==25?30:k==30?37:k==35?45:k==40?50:k==45?55:60}</option>`).join('');
+function setGrade(p,g){const t=GR[g];$(p+'fck').value=g;$(p+'fctm').value=t[0];$(p+'E').value=t[1]}
+$('cgrade').value='30';$('bgrade').value='40';setGrade('c',30);setGrade('b',40);
+$('cgrade').onchange=e=>{setGrade('c',+e.target.value);run()};
+$('bgrade').onchange=e=>{setGrade('b',+e.target.value);run()};
+
+function parseList(str){const out=[];for(let t of str.trim().split(/[;\s]+/)){t=t.replace(/,+$/,'').replace(',','.');if(!t)continue;const m=t.match(/^(\d+)\s*[x*×]\s*([\d.]+)$/i);if(m){for(let i=0;i<+m[1];i++)out.push(+m[2])}else out.push(+t)}return out}
+
+// saved inputs
+const ids=['spans','heights','base','cshape','cb','cgrade','cfck','cE','cfctm','cgam','bb','bh','bgrade','bfck','bE','bfctm','bgam','fG','fQ','fW','fyk','cover'];
+try{const s=JSON.parse(localStorage.getItem('khung2d')||'null');if(s){ids.forEach(k=>{if(s[k]!=null)$(k).value=s[k]});$('sw').checked=s.sw!==false;loads=s.loads||[]}}catch(e){}
+function save(){try{const s={sw:$('sw').checked,loads};ids.forEach(k=>s[k]=$(k).value);localStorage.setItem('khung2d',JSON.stringify(s))}catch(e){}}
+
+function buildLoadTable(nF){
+  while(loads.length<nF)loads.push(loads.length?{...loads[loads.length-1]}:{g:15,q:8,w:10});
+  let h='';for(let j=nF;j>=1;j--){const L=loads[j-1];h+=`<tr><td>T${j}${j==nF?' (mái)':''}</td>`+['g','q','w'].map(k=>`<td><input type="number" step="any" class="li" data-j="${j-1}" data-k="${k}" value="${L[k]}"></td>`).join('')+'</tr>'}
+  $('ldb').innerHTML=h;$('ldb').dataset.n=nF;
+}
+$('ldb').addEventListener('input',e=>{const t=e.target;if(t.classList.contains('li')){loads[+t.dataset.j][t.dataset.k]=+t.value||0;sched()}});
+
+function readModel(){
+  const S=parseList($('spans').value),H=parseList($('heights').value);
+  if(!S.length||!H.length||S.some(v=>!(v>0))||H.some(v=>!(v>0)))throw 'Nhịp và chiều cao tầng phải là các số dương.';
+  if(S.length>10)throw 'Tối đa 10 nhịp.';if(H.length>15)throw 'Tối đa 15 tầng.';
+  if(+$('ldb').dataset.n!==H.length)buildLoadTable(H.length);
+  const v=k=>{const x=+$(k).value;if(!(x>0))throw 'Giá trị “'+k+'” không hợp lệ.';return x};
+  const shape=$('cshape').value,cd=v('cb')/1000;
+  const col={shape,d:cd,A:shape=='sq'?cd*cd:Math.PI*cd*cd/4,I:shape=='sq'?cd**4/12:Math.PI*cd**4/64,fck:v('cfck'),E:v('cE'),fctm:v('cfctm'),gam:v('cgam'),grade:$('cgrade').value};
+  const bb=v('bb')/1000,bh=v('bh')/1000;
+  const beam={b:bb,h:bh,A:bb*bh,I:bb*bh**3/12,fck:v('bfck'),E:v('bE'),fctm:v('bfctm'),gam:v('bgam'),grade:$('bgrade').value};
+  const f={G:+$('fG').value||0,Q:+$('fQ').value||0,W:+$('fW').value||0};
+  const sw=$('sw').checked,nC=S.length+1,nF=H.length;
+  const X=[0],Y=[0];S.forEach(s=>X.push(X[X.length-1]+s));H.forEach(h=>Y.push(Y[Y.length-1]+h));
+  const nodes=[];for(let j=0;j<=nF;j++)for(let i=0;i<nC;i++)nodes.push({x:X[i],y:Y[j],i,j,P:[0,0,0]});
+  const id=(i,j)=>j*nC+i,mem=[];
+  for(let j=1;j<=nF;j++)for(let i=0;i<nC;i++)mem.push({name:`C${i+1}.${j}`,type:'col',a:id(i,j-1),b:id(i,j),E:col.E*1e6,A:col.A,I:col.I,gx:0,gy:sw?-f.G*col.gam*col.A:0,floor:j});
+  for(let j=1;j<=nF;j++){const L=loads[j-1];const w=f.G*((L.g||0)+(sw?beam.gam*beam.A:0))+f.Q*(L.q||0);
+    for(let i=0;i<S.length;i++)mem.push({name:`D${j}.${i+1}`,type:'beam',a:id(i,j),b:id(i+1,j),E:beam.E*1e6,A:beam.A,I:beam.I,gx:0,gy:-w,floor:j,w});
+    nodes[id(0,j)].P[0]+=f.W*(L.w||0);}
+  return {S,H,X,Y,nC,nF,nodes,mem,col,beam,f,sw,base:$('base').value,fyk:v('fyk'),cover:v('cover')};
+}
+
+function analyze(m){
+  const nn=m.nodes.length,n=3*nn;
+  const K=Array.from({length:n},()=>new Float64Array(n)),F=new Float64Array(n);
+  m.nodes.forEach((nd,k)=>{F[3*k]+=nd.P[0];F[3*k+1]+=nd.P[1];F[3*k+2]+=nd.P[2]});
+  for(const e of m.mem){
+    const A=m.nodes[e.a],B=m.nodes[e.b],dx=B.x-A.x,dy=B.y-A.y,L=Math.hypot(dx,dy),c=dx/L,s=dy/L;
+    Object.assign(e,{L,c,s,qx:c*e.gx+s*e.gy,qy:-s*e.gx+c*e.gy});
+    const EA=e.E*e.A/L,a=12*e.E*e.I/L**3,b=6*e.E*e.I/L**2,g=4*e.E*e.I/L,h=2*e.E*e.I/L;
+    const k=[[EA,0,0,-EA,0,0],[0,a,b,0,-a,b],[0,b,g,0,-b,h],[-EA,0,0,EA,0,0],[0,-a,-b,0,a,-b],[0,b,h,0,-b,g]];
+    const T=Array.from({length:6},()=>Array(6).fill(0));for(const o of[0,3]){T[o][o]=c;T[o][o+1]=s;T[o+1][o]=-s;T[o+1][o+1]=c;T[o+2][o+2]=1}
+    const kT=k.map(r=>T[0].map((_,j)=>r.reduce((t,v,q)=>t+v*T[q][j],0)));
+    const kg=T[0].map((_,i)=>T[0].map((_,j)=>T.reduce((t,r,q)=>t+r[i]*kT[q][j],0)));
+    const dof=[3*e.a,3*e.a+1,3*e.a+2,3*e.b,3*e.b+1,3*e.b+2];
+    for(let i=0;i<6;i++)for(let j=0;j<6;j++)K[dof[i]][dof[j]]+=kg[i][j];
+    const FER=[-e.qx*L/2,-e.qy*L/2,-e.qy*L*L/12,-e.qx*L/2,-e.qy*L/2,e.qy*L*L/12];
+    for(let i=0;i<6;i++)F[dof[i]]-=T.reduce((t,r,q)=>t+r[i]*FER[q],0);
+    Object.assign(e,{k,T,dof,FER});
+  }
+  const fixed=new Uint8Array(n);m.nodes.forEach((nd,k)=>{if(nd.j===0){fixed[3*k]=fixed[3*k+1]=1;if(m.base==='fix')fixed[3*k+2]=1}});
+  const free=[];for(let i=0;i<n;i++)if(!fixed[i])free.push(i);
+  const nf=free.length,Ar=free.map(i=>{const r=new Float64Array(nf+1);free.forEach((j,q)=>r[q]=K[i][j]);r[nf]=F[i];return r});
+  for(let c=0;c<nf;c++){let p=c;for(let r=c+1;r<nf;r++)if(Math.abs(Ar[r][c])>Math.abs(Ar[p][c]))p=r;
+    if(Math.abs(Ar[p][c])<1e-9)throw 'Hệ biến hình (ma trận suy biến) — kiểm tra liên kết.';[Ar[c],Ar[p]]=[Ar[p],Ar[c]];
+    const rc=Ar[c];for(let r=c+1;r<nf;r++){const f=Ar[r][c]/rc[c];if(f)for(let q=c;q<=nf;q++)Ar[r][q]-=f*rc[q]}}
+  const x=new Float64Array(nf);for(let r=nf-1;r>=0;r--){let t=Ar[r][nf];for(let q=r+1;q<nf;q++)t-=Ar[r][q]*x[q];x[r]=t/Ar[r][r]}
+  const d=new Float64Array(n);free.forEach((i,q)=>d[i]=x[q]);
+  const Rn=m.nodes.map(()=>[0,0,0]);
+  for(const e of m.mem){
+    const ug=e.dof.map(i=>d[i]),ul=e.T.map(r=>r.reduce((t,v,q)=>t+v*ug[q],0));
+    const f=e.k.map((r,i)=>r.reduce((t,v,q)=>t+v*ul[q],0)+e.FER[i]);e.ul=ul;e.f=f;
+    const fg=[0,1,2,3,4,5].map(i=>e.T.reduce((t,r,q)=>t+r[i]*f[q],0));
+    for(let i=0;i<3;i++){Rn[e.a][i]+=fg[i];Rn[e.b][i]+=fg[i+3]}
+    const L=e.L,xs=[];for(let i=0;i<=20;i++)xs.push(L*i/20);
+    if(Math.abs(e.qy)>1e-12){const x0=-f[1]/e.qy;if(x0>0&&x0<L)xs.push(x0)}xs.sort((a,b)=>a-b);
+    e.pts=xs.map(x=>({x,...e_at(e,x)}));
+    const Ms=e.pts.map(p=>p.M),Vs=e.pts.map(p=>p.V),Ns=e.pts.map(p=>p.N);
+    e.env={Mmax:Math.max(...Ms),Mmin:Math.min(...Ms),Vabs:Math.max(...Vs.map(Math.abs)),Nmax:Math.max(...Ns),Nmin:Math.min(...Ns)};
+  }
+  const reac=[];m.nodes.forEach((nd,k)=>{if(nd.j===0)reac.push({k,i:nd.i,R:[Rn[k][0]-nd.P[0],Rn[k][1]-nd.P[1],m.base==='fix'?Rn[k][2]-nd.P[2]:0]})});
+  return {d,reac};
+}
+function e_at(e,x){const f=e.f;return {N:-f[0]-e.qx*x,V:f[1]+e.qy*x,M:-f[2]+f[1]*x+e.qy*x*x/2}}
+function e_def(e,x){const L=e.L,u=e.ul,t=x/L;
+  const ax=u[0]*(1-t)+u[3]*t+e.qx*x*(L-x)/(2*e.E*e.A);
+  const tr=u[1]*(1-3*t*t+2*t**3)+u[2]*L*(t-2*t*t+t**3)+u[4]*(3*t*t-2*t**3)+u[5]*L*(t**3-t*t)+e.qy*x*x*(L-x)**2/(24*e.E*e.I);
+  return [ax,tr]}
+
+// ---------- drawing ----------
+const KIND={M:{t:'Biểu đồ mô men M (kN·m) — vẽ về phía thớ căng',c:'--red',u:'kN·m'},V:{t:'Biểu đồ lực cắt Q (kN)',c:'--blue',u:'kN'},N:{t:'Biểu đồ lực dọc N (kN) — kéo dương, nén âm',c:'--blue',u:'kN'},D:{t:'Hình dạng biến dạng (phóng đại)',c:'--red'},geo:{t:'Sơ đồ tính và tải trọng tính toán',c:'--ink'}};
+function frameSVG(m,kind,W,H,labels){
+  const Lx=m.X[m.X.length-1],Ly=m.Y[m.Y.length-1],pad=kind==='geo'?64:58;
+  const s=Math.min((W-2*pad)/Lx,(H-2*pad-10)/Ly),ox=(W-Lx*s)/2,oy=H-(H-Ly*s)/2+8;
+  const P=(x,y)=>[ox+x*s,oy-y*s],pt=p=>p.map(v=>v.toFixed(1)).join(',');
+  const minL=Math.min(...m.S,...m.H);let o='';
+  const col=`var(${KIND[kind].c})`;
+  const tx=(x,y,t,a='middle',cl='')=>`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${a}" class="lb ${cl}">${t}</text>`;
+  // base frame
+  const fr=m.mem.map(e=>{const A=m.nodes[e.a],B=m.nodes[e.b];return `<line x1="${pt(P(A.x,A.y)).split(',')[0]}" y1="${P(A.x,A.y)[1].toFixed(1)}" x2="${P(B.x,B.y)[0].toFixed(1)}" y2="${P(B.x,B.y)[1].toFixed(1)}" stroke="var(--ink)" stroke-width="${kind==='geo'?2.5:1.6}" ${kind==='D'?'stroke-dasharray="4 4" opacity=".45"':''}/>`}).join('');
+  // supports
+  let sup='';m.nodes.filter(n=>n.j===0).forEach(n=>{const [x,y]=P(n.x,n.y);
+    if(m.base==='fix'){sup+=`<line x1="${x-14}" y1="${y}" x2="${x+14}" y2="${y}" stroke="var(--ink)" stroke-width="2"/>`;for(let i=-12;i<=12;i+=6)sup+=`<line x1="${x+i}" y1="${y}" x2="${x+i-5}" y2="${y+7}" stroke="var(--ink)"/>`}
+    else sup+=`<path d="M${x},${y} l-9,14 h18 z" fill="none" stroke="var(--ink)" stroke-width="1.6"/><line x1="${x-13}" y1="${y+16}" x2="${x+13}" y2="${y+16}" stroke="var(--ink)"/>`});
+  if(kind==='geo'){
+    for(const e of m.mem){const A=m.nodes[e.a],B=m.nodes[e.b],[x1,y1]=P(A.x,A.y),[x2,y2]=P(B.x,B.y);
+      if(e.type==='beam'){const hh=Math.min(16,(m.H[e.floor-1]*s)*0.18);o+=`<rect x="${x1}" y="${y1-hh}" width="${x2-x1}" height="${hh}" fill="var(--red)" opacity=".12"/>`;
+        const na=Math.max(2,Math.round((x2-x1)/22));for(let i=0;i<=na;i++){const xx=x1+(x2-x1)*i/na;o+=`<line x1="${xx}" y1="${y1-hh}" x2="${xx}" y2="${y1-2}" stroke="var(--red)" stroke-width="1" marker-end="url(#ar)"/>`}
+        if(labels)o+=tx((x1+x2)/2,y1-hh-5,fmt(e.w,1)+' kN/m','middle','red');
+        o+=tx((x1+x2)/2,y1+15,e.name,'middle','mu');}
+      else o+=tx(x1+6,(y1+y2)/2,e.name,'start','mu');}
+    m.nodes.forEach(n=>{if(n.P[0]){const [x,y]=P(n.x,n.y);o+=`<line x1="${x-46}" y1="${y}" x2="${x-4}" y2="${y}" stroke="var(--blue)" stroke-width="2" marker-end="url(#ab)"/>`;if(labels)o+=tx(x-48,y-6,fmt(n.P[0],1)+' kN','end','blue')}});
+    m.H.forEach((h,j)=>{const [x,y1]=P(0,m.Y[j]),[,y2]=P(0,m.Y[j+1]);if(labels)o+=tx(W-12,(y1+y2)/2+4,fmt(h,2)+' m','end','mu')});
+    m.S.forEach((sp,i)=>{const [x1,y]=P(m.X[i],0),[x2]=P(m.X[i+1],0);if(labels)o+=tx((x1+x2)/2,y+30,fmt(sp,2)+' m','middle','mu')});
+  } else if(kind==='D'){
+    let dm=0;for(const e of m.mem)for(let i=0;i<=10;i++){const [a,t]=e_def(e,e.L*i/10);dm=Math.max(dm,Math.hypot(a,t))}
+    const sc=dm>0?0.07*Math.max(Lx,Ly)/dm:0;
+    for(const e of m.mem){const A=m.nodes[e.a],ps=[];for(let i=0;i<=20;i++){const x=e.L*i/20,[a,t]=e_def(e,x);ps.push(P(A.x+e.c*(x+a*sc)-e.s*t*sc,A.y+e.s*(x+a*sc)+e.c*t*sc))}
+      o+=`<polyline points="${ps.map(pt).join(' ')}" fill="none" stroke="${col}" stroke-width="2.2"/>`}
+    if(labels)m.nodes.forEach((n,k)=>{if(n.i===m.nC-1&&n.j>0){const [x,y]=P(n.x+R.d[3*k]*sc,n.y);o+=tx(x+8,y-6,fmt(R.d[3*k]*1000,1)+' mm','start','red')}});
+    R.defScale=sc;
+  } else {
+    let mx=0;for(const e of m.mem)for(const p of e.pts)mx=Math.max(mx,Math.abs(p[kind]));
+    const ds=mx>0?0.32*minL/mx:0,sign=kind==='M'?-1:1,LB=[];
+    for(const e of m.mem){const A=m.nodes[e.a],nx=-e.s,ny=e.c,base=q=>[A.x+e.c*q,A.y+e.s*q];
+      const ps=e.pts.map(p=>{const [bx,by]=base(p.x),v=sign*p[kind]*ds;return P(bx+nx*v,by+ny*v)});
+      const poly=[P(A.x,A.y),...ps,P(...base(e.L))];
+      o+=`<polygon points="${poly.map(pt).join(' ')}" fill="${col}" fill-opacity=".14" stroke="${col}" stroke-width="1.3"/>`;
+      if(labels){const ends=[e.pts[0],e.pts[e.pts.length-1]];let cand=[...ends];
+        const ext=e.pts.reduce((a,p)=>Math.abs(p[kind])>Math.abs(a[kind])?p:a);
+        const ie=e.pts.filter(p=>p.x>0.15*e.L&&p.x<0.85*e.L).reduce((a,p)=>!a||Math.abs(p[kind])>Math.abs(a[kind])?p:a,null);
+        if(ie&&Math.abs(ie[kind])>1.08*Math.max(Math.abs(ends[0][kind]),Math.abs(ends[1][kind])))cand.push(ie);
+        else if(kind==='M'&&e.type==='beam'&&ie)cand.push(ie);
+        const mxE=Math.max(Math.abs(ends[0][kind]),Math.abs(ends[1][kind]));
+        if(kind==='N'||Math.abs(ends[0][kind]-ends[1][kind])<0.02*mxE+0.05)cand=[{x:e.L/2,...e_at(e,e.L/2)}];
+        for(const p of cand)LB.push({e,p,base,nx,ny})}
+    }
+    // place labels: beams first, then columns, sliding along the member to avoid overlaps
+    const boxes=[],hit=b=>boxes.some(q=>b[0]<q[2]&&b[2]>q[0]&&b[1]<q[3]&&b[3]>q[1]);
+    LB.sort((a,b)=>(a.e.type==='beam'?0:1)-(b.e.type==='beam'?0:1));
+    for(const {e,p,base,nx,ny} of LB){const t=fmt(p[kind],1),w=t.length*6.6+4,lo=e.type==='col'?0.22:0.12;
+      const r1=Math.min(Math.max(p.x/e.L,lo),1-lo),dir=r1<=0.5?1:-1,tries=[0,0.08,0.16,0.24,-0.06,0.32].map(k=>Math.min(Math.max(r1+dir*k,0.08),0.92));
+      let best=null;L1:for(const extra of[0,12])for(const r of tries){const xx=r*e.L,[bx,by]=base(xx),pv=e_at(e,xx)[kind],v=sign*pv*ds,g=(v>=0?1:-1)*((10+extra)/s);
+        const [X1,Y1]=P(bx+nx*(v+g),by+ny*(v+g)),anchor=e.type==='col'?(nx*(v+g)<0?'end':'start'):'middle';
+        const x0=anchor==='end'?X1-w:anchor==='start'?X1:X1-w/2,bb=[x0,Y1-10,x0+w,Y1+6];
+        const c={X1,Y1,anchor,bb};if(!best)best=c;if(!hit(bb)){best=c;break L1}}
+      boxes.push(best.bb);o+=tx(best.X1,best.Y1+4,t,best.anchor,kind==='M'?'red':'blue')}
+    R.dscale=ds;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif"><style>.lb{font-size:12px;fill:var(--ink);paint-order:stroke;stroke:var(--bg);stroke-width:3px}.red{fill:var(--red)}.blue{fill:var(--blue)}.mu{fill:var(--mute)}</style><defs><marker id="ar" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="var(--red)"/></marker><marker id="ab" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7z" fill="var(--blue)"/></marker></defs>${kind==='geo'?o+fr:fr+o}${sup}</svg>`;
+}
+function draw(){
+  const fig=$('fig'),sv=$('sv');if(!R||!R.m)return;const W=fig.clientWidth,H=fig.clientHeight;
+  const html=frameSVG(R.m,view,W,H,$('lbl').checked);sv.outerHTML=html.replace('<svg ','<svg id="sv" ');
+  let cap=KIND[view].t;if(view==='D')cap+=` — hệ số phóng đại ×${fmt(R.defScale,0)}`;
+  $('cap').textContent=cap+(view!=='geo'?'. Rê chuột lên phần tử để đọc nội lực tại từng mặt cắt.':'');
+  R.view={W,H};
+}
+const ro=new ResizeObserver(()=>draw());ro.observe($('fig'));
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;view=b.dataset.k;for(const x of $('tabs').querySelectorAll('button'))x.setAttribute('aria-selected',x===b);try{localStorage.setItem('khung2d_v',view)}catch(_){}draw()});
+try{const v=localStorage.getItem('khung2d_v');if(v&&KIND[v]){view=v;for(const x of $('tabs').querySelectorAll('button'))x.setAttribute('aria-selected',x.dataset.k===v)}}catch(_){}
+$('lbl').onchange=draw;if(innerWidth<520)$('lbl').checked=false;
+
+$('fig').addEventListener('pointermove',ev=>{
+  const tip=$('tip');if(!R||!R.m||!R.view){return}const m=R.m,r=$('fig').getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
+  const {W,H}=R.view,Lx=m.X[m.X.length-1],Ly=m.Y[m.Y.length-1],pad=view==='geo'?64:58,s=Math.min((W-2*pad)/Lx,(H-2*pad-10)/Ly),ox=(W-Lx*s)/2,oy=H-(H-Ly*s)/2+8;
+  const X=(mx-ox)/s,Y=(oy-my)/s;let best=null;
+  for(const e of m.mem){const A=m.nodes[e.a];const t=Math.max(0,Math.min(e.L,(X-A.x)*e.c+(Y-A.y)*e.s));const px=A.x+e.c*t,py=A.y+e.s*t,dd=Math.hypot(X-px,Y-py)*s;if(!best||dd<best.dd)best={e,t,dd}}
+  if(!best||best.dd>28){tip.style.display='none';return}
+  const v=e_at(best.e,best.t);tip.innerHTML=`<b>${best.e.name}</b> · x = ${fmt(best.t,2)} m<br>M = ${fmt(v.M,2)} kN·m · Q = ${fmt(v.V,2)} kN · N = ${fmt(v.N,2)} kN`;
+  tip.style.display='block';tip.style.left=Math.min(mx+14,W-tip.offsetWidth-6)+'px';tip.style.top=Math.max(my-48,4)+'px';
+});
+$('fig').addEventListener('pointerleave',()=>$('tip').style.display='none');
+
+// ---------- report ----------
+function report(m,res){
+  const fcdC=m.col.fck/1.5,fcdB=m.beam.fck/1.5,cols=m.mem.filter(e=>e.type==='col'),beams=m.mem.filter(e=>e.type==='beam');
+  const tb=(head,rows,cls='')=>`<div class="scroll"><table class="${cls}"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const cname=m.col.shape==='sq'?`Vuông ${fmt(m.col.d*1000,0)}×${fmt(m.col.d*1000,0)} mm`:`Tròn D = ${fmt(m.col.d*1000,0)} mm`;
+  const Wc=m.col.shape==='sq'?m.col.d**3/6:Math.PI*m.col.d**3/32;
+  // drift
+  const drift=[];for(let j=1;j<=m.nF;j++){const k=j*m.nC,k0=(j-1)*m.nC,u=res.d[3*k],u0=res.d[3*k0],dl=u-u0;drift.push({j,h:m.H[j-1],u,dl,r:Math.abs(dl)>1e-12?m.H[j-1]/Math.abs(dl):Infinity})}
+  // equilibrium
+  let sRx=0,sRy=0,sPx=0,sW=0;res.reac.forEach(r=>{sRx+=r.R[0];sRy+=r.R[1]});m.nodes.forEach(n=>sPx+=n.P[0]);m.mem.forEach(e=>sW+=e.gy*e.L);
+  // beam design
+  const fyk=m.fyk,a=m.cover;
+  const bd=beams.map(e=>{const b=m.beam.b*1000,d=m.beam.h*1000-a,fck=m.beam.fck;
+    const As=M=>{if(M<=0)return{t:'—',K:0};const K=M*1e6/(b*d*d*fck);if(K>0.167)return{t:'<span class="bad">K &gt; 0,167</span>',K};const z=Math.min(d*(0.5+Math.sqrt(0.25-K/1.134)),0.95*d);return{t:fmt(M*1e6/(0.87*fyk*z),0),K}};
+    const Amin=Math.max(0.26*m.beam.fctm/fyk*b*d,0.0013*b*d),kk=Math.min(1+Math.sqrt(200/d),2),vmin=0.035*kk**1.5*Math.sqrt(fck),VRc=vmin*b*d/1000;
+    const bot=As(e.env.Mmax),top=As(-e.env.Mmin);
+    return [e.name,fmt(e.L,2),fmt(e.env.Mmax,1),fmt(e.env.Mmin,1),bot.t,top.t,fmt(Amin,0),fmt(e.env.Vabs,1),fmt(VRc,1),e.env.Vabs<=VRc?'<span class="ok">đai cấu tạo</span>':'<span class="bad">tính cốt đai</span>']});
+  const cd=cols.map(e=>{const Ned=Math.max(0,-e.env.Nmin),Mabs=Math.max(Math.abs(e.env.Mmax),Math.abs(e.env.Mmin)),nu=Ned/(m.col.A*1000*fcdC),hh=m.col.d*1000,e0=Math.max(hh/30,20),Mmin=Ned*e0/1000;
+    return [e.name,fmt(Ned,1),fmt(Mabs,1),fmt(Mmin,1),fmt(Math.max(Mabs,Mmin),1),Ned>0?fmt(Math.max(Mabs,Mmin)/Ned*1000,0):'—',`<span class="${nu<=0.4?'ok':'bad'}">${fmt(nu,3)}</span>`]});
+  const fig=k=>`<div class="rfig">${frameSVG(m,k,1000,Math.round(1000*Math.min(0.85,Math.max(0.45,(m.Y[m.nF]+2)/(m.X[m.X.length-1]+3)))),true)}</div>`;
+  const totW=-sW,G=m.f;
+  return `
+<h2>Báo cáo tính toán khung phẳng</h2>
+<p>Khung ${m.S.length} nhịp × ${m.nF} tầng, nhịp tổng ${fmt(m.X[m.X.length-1],2)} m, chiều cao ${fmt(m.Y[m.nF],2)} m; chân cột ${m.base==='fix'?'ngàm':'khớp'}. Tổ hợp tính toán ${fmt(G.G,2)}·G + ${fmt(G.Q,2)}·Q + ${fmt(G.W,2)}·W. Tổng ${m.nodes.length} nút, ${m.mem.length} phần tử, ${3*m.nodes.length} bậc tự do.</p>
+<h3>1. Phương pháp và quy ước</h3>
+<p>Phân tích tĩnh tuyến tính bậc một theo phương pháp độ cứng trực tiếp: phần tử thanh Euler–Bernoulli, nút cứng, kể biến dạng dọc trục, không kể biến dạng trượt và hiệu ứng P-Δ. Đơn vị: kN, m. Lực dọc N dương khi kéo. Mô men M vẽ về phía thớ căng (dầm: dương khi căng thớ dưới). Lực cắt Q = tổng lực ngang trục bên trái mặt cắt (theo chiều trục y cục bộ). Độ cứng dùng tiết diện nguyên, chưa giảm do nứt.</p>
+<h3>2. Vật liệu (EN 1992-1-1, γ<sub>c</sub> = 1,5; α<sub>cc</sub> = 1,0)</h3>
+${tb(['Cấu kiện','Cấp','f<sub>ck</sub> (MPa)','f<sub>cd</sub> (MPa)','f<sub>ctm</sub> (MPa)','E<sub>cm</sub> (GPa)','γ (kN/m³)'],[
+ ['Cột','C'+m.col.grade,fmt(m.col.fck,1),fmt(fcdC,2),fmt(m.col.fctm,2),fmt(m.col.E,1),fmt(m.col.gam,1)],
+ ['Dầm','C'+m.beam.grade,fmt(m.beam.fck,1),fmt(fcdB,2),fmt(m.beam.fctm,2),fmt(m.beam.E,1),fmt(m.beam.gam,1)]])}
+<p>Thép dọc f<sub>yk</sub> = ${fmt(fyk,0)} MPa, f<sub>yd</sub> = f<sub>yk</sub>/1,15 = ${fmt(fyk/1.15,1)} MPa.</p>
+<h3>3. Đặc trưng tiết diện</h3>
+${tb(['Cấu kiện','Tiết diện','A (m²)','I (m⁴)','W (m³)','EA (kN)','EI (kN·m²)'],[
+ ['Cột',cname,fmt(m.col.A,4),m.col.I.toExponential(4),Wc.toExponential(4),fmt(m.col.E*1e6*m.col.A,0),fmt(m.col.E*1e6*m.col.I,0)],
+ ['Dầm',`${fmt(m.beam.b*1000,0)}×${fmt(m.beam.h*1000,0)} mm`,fmt(m.beam.A,4),m.beam.I.toExponential(4),(m.beam.b*m.beam.h**2/6).toExponential(4),fmt(m.beam.E*1e6*m.beam.A,0),fmt(m.beam.E*1e6*m.beam.I,0)]])}
+<h3>4. Tải trọng</h3>
+${tb(['Tầng','Cao độ sàn (m)','g (kN/m)','q (kN/m)','TLBT dầm (kN/m)','w tính toán (kN/m)','W (kN)','γ<sub>W</sub>·W (kN)'],
+ [...Array(m.nF).keys()].reverse().map(i=>{const L=loads[i],sw=m.sw?m.beam.gam*m.beam.A:0,w=G.G*(L.g+sw)+G.Q*L.q;return ['T'+(i+1),fmt(m.Y[i+1],2),fmt(L.g,2),fmt(L.q,2),fmt(sw,2),fmt(w,2),fmt(L.w,2),fmt(G.W*L.w,2)]}))}
+<p>${m.sw?`Trọng lượng bản thân cột: ${fmt(G.G*m.col.gam*m.col.A,2)} kN/m (đã nhân γ<sub>G</sub>), phân bố dọc trục cột.`:'Không kể trọng lượng bản thân.'} Tổng tải đứng tính toán: ${fmt(totW,1)} kN; tổng lực ngang: ${fmt(sPx,1)} kN.</p>
+${fig('geo')}
+<h3>5. Biểu đồ nội lực</h3>
+<p>Mô men M (kN·m)</p>${fig('M')}<p>Lực cắt Q (kN)</p>${fig('V')}<p>Lực dọc N (kN)</p>${fig('N')}
+<h3>6. Phản lực liên kết và kiểm tra cân bằng</h3>
+${tb(['Chân cột','R<sub>x</sub> (kN)','R<sub>y</sub> (kN)','M<sub>R</sub> (kN·m)'],res.reac.map(r=>['Trục '+(r.i+1),fmt(r.R[0],2),fmt(r.R[1],2),m.base==='fix'?fmt(r.R[2],2):'—']).concat([['<b>Tổng</b>',`<b>${fmt(sRx,2)}</b>`,`<b>${fmt(sRy,2)}</b>`,'']]))}
+<p>ΣR<sub>x</sub> + ΣF<sub>x</sub> = ${fmt(sRx+sPx,4)} kN; ΣR<sub>y</sub> − tải đứng = ${fmt(sRy+sW,4)} kN <span class="tag ${Math.abs(sRx+sPx)+Math.abs(sRy+sW)<1e-3*(totW+1)?'ok':'bad'}">${Math.abs(sRx+sPx)+Math.abs(sRy+sW)<1e-3*(totW+1)?'cân bằng':'kiểm tra lại'}</span></p>
+<h3>7. Chuyển vị ngang tầng</h3>
+${tb(['Tầng','h (m)','u<sub>x</sub> sàn (mm)','Δ tầng (mm)','Δ/h'],drift.slice().reverse().map(r=>['T'+r.j,fmt(r.h,2),fmt(r.u*1000,2),fmt(r.dl*1000,2),isFinite(r.r)?'1/'+fmt(r.r,0):'—']))}
+<p>Giá trị theo tổ hợp tính toán (ULS) và độ cứng tiết diện nguyên; dùng để tham khảo, kiểm tra chuyển vị thực tế cần tổ hợp SLS.</p>
+<h3>8. Nội lực tại hai đầu phần tử</h3>
+${tb(['Phần tử','L (m)','N<sub>đầu</sub>','Q<sub>đầu</sub>','M<sub>đầu</sub>','N<sub>cuối</sub>','Q<sub>cuối</sub>','M<sub>cuối</sub>','M<sub>max</sub>','M<sub>min</sub>','|Q|<sub>max</sub>'],
+ m.mem.map(e=>{const a=e.pts[0],b=e.pts[e.pts.length-1];return [e.name,fmt(e.L,2),fmt(a.N,1),fmt(a.V,1),fmt(a.M,1),fmt(b.N,1),fmt(b.V,1),fmt(b.M,1),fmt(e.env.Mmax,1),fmt(e.env.Mmin,1),fmt(e.env.Vabs,1)]}))}
+<p>Đơn vị: kN, kN·m. Cột: đầu = chân, cuối = đỉnh. Dầm: đầu = trái, cuối = phải. Tên: C<i>trục</i>.<i>tầng</i>, D<i>tầng</i>.<i>nhịp</i>.</p>
+<h3>9. Tính sơ bộ cốt thép dọc dầm</h3>
+${tb(['Dầm','L (m)','M<sup>+</sup> (kN·m)','M<sup>−</sup> (kN·m)','A<sub>s</sub> dưới (mm²)','A<sub>s</sub> trên (mm²)','A<sub>s,min</sub> (mm²)','|V<sub>Ed</sub>| (kN)','V<sub>Rd,c,min</sub> (kN)','Cốt đai'],bd)}
+<p>Tiết diện chữ nhật cốt đơn, d = h − a = ${fmt(m.beam.h*1000-a,0)} mm; K = M/(b·d²·f<sub>ck</sub>) ≤ 0,167; z = d[0,5 + √(0,25 − K/1,134)] ≤ 0,95d; A<sub>s</sub> = M/(0,87·f<sub>yk</sub>·z); A<sub>s,min</sub> = max(0,26·f<sub>ctm</sub>/f<sub>yk</sub>; 0,0013)·b·d. V<sub>Rd,c,min</sub> = 0,035·k<sup>1,5</sup>·√f<sub>ck</sub>·b·d. Mô men gối lấy tại trục cột, chưa giảm về mép gối.</p>
+<h3>10. Kiểm tra sơ bộ cột</h3>
+${tb(['Cột','N<sub>Ed</sub> nén (kN)','|M|<sub>max</sub> (kN·m)','N·e<sub>0,min</sub> (kN·m)','M<sub>Ed</sub> (kN·m)','e (mm)','ν = N/(A<sub>c</sub>f<sub>cd</sub>)'],cd)}
+<p>e<sub>0,min</sub> = max(h/30; 20 mm) theo EN 1992-1-1 mục 6.1(4). ν ≤ 0,4 được đánh dấu xanh. Chưa xét hiệu ứng bậc hai (độ mảnh) và tính cốt thép cột — cần kiểm tra bằng biểu đồ tương tác N–M.</p>`;
+}
+
+function kpis(m,res){
+  const cols=m.mem.filter(e=>e.type==='col'),beams=m.mem.filter(e=>e.type==='beam');
+  const mB=Math.max(...beams.map(e=>Math.max(e.env.Mmax,-e.env.Mmin))),mC=Math.max(...cols.map(e=>Math.max(e.env.Mmax,-e.env.Mmin))),nC=Math.max(...cols.map(e=>-e.env.Nmin));
+  const top=res.d[3*m.nF*m.nC];let dr=Infinity;for(let j=1;j<=m.nF;j++){const dl=Math.abs(res.d[3*j*m.nC]-res.d[3*(j-1)*m.nC]);if(dl>1e-12)dr=Math.min(dr,m.H[j-1]/dl)}
+  const vB=Math.max(...beams.map(e=>e.env.Vabs));
+  $('kpis').innerHTML=[[fmt(mB,1),'|M| lớn nhất dầm, kN·m'],[fmt(vB,1),'|Q| lớn nhất dầm, kN'],[fmt(mC,1),'|M| lớn nhất cột, kN·m'],[fmt(nC,1),'N nén lớn nhất cột, kN'],[fmt(top*1000,1)+' mm','Chuyển vị ngang đỉnh'],[isFinite(dr)?'1/'+fmt(dr,0):'—','Δ/h tầng lớn nhất']].map(k=>`<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join('');
+}
+
+function run(){
+  $('cblab').textContent=$('cshape').value==='sq'?'Cạnh b (mm)':'Đường kính D (mm)';
+  try{const m=readModel(),res=analyze(m);R={m,...res};$('err').textContent='';draw();kpis(m,res);$('rep').innerHTML=report(m,res);save()}
+  catch(e){$('err').textContent=typeof e==='string'?e:'Lỗi: '+e.message}
+}
+let tm;function sched(){clearTimeout(tm);tm=setTimeout(run,250)}
+$('f').addEventListener('input',e=>{if(!e.target.classList.contains('li')&&!e.target.classList.contains('grade'))sched()});
+$('f').addEventListener('change',e=>{if(e.target.tagName==='SELECT'&&!e.target.classList.contains('grade'))run()});
+
+$('print').onclick=()=>{try{window.print();$('msg').textContent='Nếu hộp thoại in không mở, hãy mở trang trong tab riêng của trình duyệt.'}catch(e){$('msg').textContent='Khung xem chặn lệnh in — hãy mở trang trong tab riêng.'}};
+$('copy').onclick=async()=>{const el=$('rep');try{if(window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([el.innerHTML],{type:'text/html'}),'text/plain':new Blob([el.innerText],{type:'text/plain'})})])}else await navigator.clipboard.writeText(el.innerText);$('msg').textContent='Đã sao chép — dán vào Word hoặc Google Docs.'}catch(e){$('msg').textContent='Không sao chép được trong khung xem này.'}};
+
+buildLoadTable(parseList($('heights').value).length||1);
+run();
+}
+</script>
+</body>
+</html>
